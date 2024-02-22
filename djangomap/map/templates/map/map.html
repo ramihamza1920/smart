@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Importation des fichiers CSS et JS de Leaflet, une bibliothèque pour les cartes interactives -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+        integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+        
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""
+    ></script>
+
+    <!-- Importation des fichiers CSS et JS de Leaflet Draw, une extension pour dessiner sur les cartes Leaflet -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <title>Map</title>
+</head>
+
+<body>
+
+
+    
+    <form  method='POST' style="margin: 0px 20px; margin-right: 100px">
+    {% csrf_token %}
+        
+        <div class="col-6 rounded" id="map" style="height: 500px">
+            <div class="leaflet-control"></div>
+        </div>
+        
+        <input type="text" id="points" name="points" style="width: 300px" />
+        
+        <button type="submit">save</button>
+
+    </form>
+
+
+    <!-- Script pour initialiser et gérer la carte Leaflet et les dessins -->
+    <script>
+        
+
+        // Initialisation de la carte avec un centre et un niveau de zoom spécifique
+        var map = L.map("map").setView([37.225, 9.97], 12.5);
+        // Ajout d'une couche de tuiles à la carte, ici des images satellites d'Esri
+        L.tileLayer(
+            "http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            {
+                attribution:
+                    "Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+            }
+        ).addTo(map);
+
+        // Initialisation d'un groupe de fonctionnalités pour stocker les éléments dessinés
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        // Configuration et ajout du contrôle de dessin à la carte
+        var drawControl = new L.Control.Draw({
+            draw: {
+                //dessin de polygone
+                polygon: 
+                {
+                    shapeOptions: {
+
+                        color: "red", 
+                    },
+                },
+
+        // Désactivation des autres options de dessin
+        polyline: false, // Désactive la possibilité de dessiner des polylignes
+        rectangle: false, // Désactive la possibilité de dessiner des rectangles
+        circle: false, // Désactive la possibilité de dessiner des cercles
+        marker: true, // Désactive la possibilité de placer des marqueurs
+        circlemarker: false, // Désactive la possibilité de dessiner des marqueurs circulaires
+
+
+            },
+            
+
+            edit: {
+                featureGroup: drawnItems,
+            },
+        });
+
+        map.addControl(drawControl);
+
+        // Gestionnaire d'événement pour capturer et traiter les formes dessinées
+        map.on("draw:created", function (e) {
+            var type = e.layerType, layer = e.layer;
+            if (type === "polygon") {
+                // Ajout de la forme dessinée au groupe de fonctionnalités
+                drawnItems.addLayer(layer);
+                console.log("les cordonnes de polygones: ", layer.toGeoJSON().geometry.coordinates);
+
+
+
+                var myjson = drawnItems.toGeoJSON();
+                console.log("le polygone sous forme GeoJSON", myjson);
+
+
+                let coords = myjson.features.map(feature => feature.geometry.coordinates);
+                const multiPolygon = 
+                {
+                    type: "MultiPolygon",
+                    coordinates: coords,
+                };
+                console.log("MultiPolygon", multiPolygon);
+
+                //collecter le polygone par id= points (declaré dans vue)
+                // l view tlawej 3al polygone b  'get_element'
+                document.getElementById("points").value = JSON.stringify(multiPolygon);
+            }
+        });
+        
+       
+    </script>
+    
+    
+</body>
+
+</html>
